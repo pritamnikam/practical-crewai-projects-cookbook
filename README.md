@@ -36,6 +36,10 @@ Here is a summary of the examples included in this repository:
     -   **Description**: A dual-purpose example demonstrating how agents can both generate new code and debug existing code.
     -   **Concepts**: Code generation, debugging, dynamic crew selection.
 
+8.  **[08-agent-kickoff-crewai](./08-agent-kickoff-crewai/)**
+    -   **Description**: A project showcasing advanced crew execution methods, including asynchronous and batch processing.
+    -   **Concepts**: Asynchronous execution, batch processing, `kickoff_async`, `kickoff_for_each`.
+
 ## Getting Started
 
 Each project directory contains its own `README.md` with specific instructions for setup and execution. In general, all projects follow a similar structure:

@@ -28,6 +28,10 @@ Here is a summary of the examples included in this repository:
     -   **Description**: A sophisticated example that implements a hierarchical crew structure, where a manager agent delegates tasks to subordinate agents.
     -   **Concepts**: Hierarchical process, manager LLM, delegation.
 
+6.  **[06-agent-human-feedback-crewai](./06-agent-human-feedback-crewai/)**
+    -   **Description**: An interactive example that shows how to pause a crew to ask for human feedback before continuing a task.
+    -   **Concepts**: Human-in-the-loop, interactive workflows.
+
 ## Getting Started
 
 Each project directory contains its own `README.md` with specific instructions for setup and execution. In general, all projects follow a similar structure:

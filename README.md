@@ -32,6 +32,10 @@ Here is a summary of the examples included in this repository:
     -   **Description**: An interactive example that shows how to pause a crew to ask for human feedback before continuing a task.
     -   **Concepts**: Human-in-the-loop, interactive workflows.
 
+7.  **[07-agent-generating-code-crewai](./07-agent-generating-code-crewai/)**
+    -   **Description**: A dual-purpose example demonstrating how agents can both generate new code and debug existing code.
+    -   **Concepts**: Code generation, debugging, dynamic crew selection.
+
 ## Getting Started
 
 Each project directory contains its own `README.md` with specific instructions for setup and execution. In general, all projects follow a similar structure:

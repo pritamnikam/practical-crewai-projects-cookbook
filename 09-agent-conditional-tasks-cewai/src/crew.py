@@ -91,6 +91,7 @@ def create_event_crew():
         agents=[data_collector, data_analyzer, summary_creator],
         tasks=[fetch_task, verify_data_task, summary_task],
         verbose=True,
+        planning=True  # Retain the planning feature
     )
 
     return event_crew

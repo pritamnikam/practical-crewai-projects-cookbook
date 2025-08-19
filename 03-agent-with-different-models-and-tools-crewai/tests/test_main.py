@@ -1,108 +1,101 @@
-"""Tests for the main application."""
+"""Tests for the refactored multi-model application."""
 
 import pytest
-import os
-from unittest.mock import MagicMock, patch
-from src.main import MultiModelCrew
+from unittest.mock import patch, MagicMock
 
+# --- Fixtures ---
 
-class TestMultiModelCrew:
-    """Test cases for MultiModelCrew class."""
-
-    @patch('src.main.ChatGoogleGenerativeAI')
-    @patch('src.main.ChatOpenAI')
-    @patch('src.main.SerperDevTool')
-    @patch('src.main.ScrapeWebsiteTool')
-    @patch.dict('os.environ', {
+@pytest.fixture
+def mock_environment_vars():
+    with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test_openai_key',
         'GOOGLE_API_KEY': 'test_google_key',
         'SERPER_API_KEY': 'test_serper_key'
-    })
-    def test_initialization(self, mock_scrape_tool, mock_search_tool, 
-                          mock_openai, mock_gemini):
-        """Test that the crew initializes with all required components."""
-        # Setup mocks
-        mock_search_tool.return_value = 'search_tool'
-        mock_scrape_tool.return_value = 'scrape_tool'
-        
-        # Initialize the crew
-        crew = MultiModelCrew()
-        
-        # Assert tools and models were initialized
-        assert hasattr(crew, 'search_tool')
-        assert hasattr(crew, 'scrape_tool')
-        assert hasattr(crew, 'gemini')
-        assert hasattr(crew, 'gpt')
-        assert hasattr(crew, 'article_researcher')
-        assert hasattr(crew, 'article_writer')
-        assert hasattr(crew, 'research_task')
-        assert hasattr(crew, 'writing_task')
+    }):
+        yield
 
-    @patch('src.main.Crew')
-    @patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test_openai_key',
-        'GOOGLE_API_KEY': 'test_google_key',
-        'SERPER_API_KEY': 'test_serper_key'
-    })
-    def test_run_method(self, mock_crew_class):
-        """Test the run method with a test topic."""
-        # Setup mock
+@pytest.fixture
+def mock_llms():
+    with patch('src.llms.LLM') as mock_llm_class:
+        mock_llm_instance = MagicMock()
+        mock_llm_class.return_value = mock_llm_instance
+        yield mock_llm_instance
+
+@pytest.fixture
+def mock_tools():
+    with patch('src.tools.Tool') as mock_tool_class:
+        mock_tool_instance = MagicMock()
+        mock_tool_class.return_value = mock_tool_instance
+        yield mock_tool_instance
+
+@pytest.fixture
+def mock_crew():
+    with patch('src.crew.Crew') as mock_crew_class:
         mock_crew_instance = MagicMock()
-        mock_crew_instance.kickoff.return_value = MagicMock(raw='Test result')
         mock_crew_class.return_value = mock_crew_instance
-        
-        # Initialize and run
-        crew = MultiModelCrew()
-        result = crew.run('test topic')
-        
-        # Assertions
-        assert result['topic'] == 'test topic'
-        assert result['result'] == 'Test result'
-        mock_crew_instance.kickoff.assert_called_once()
+        yield mock_crew_instance
 
-    @patch.dict('os.environ', {}, clear=True)
-    def test_missing_environment_variables(self):
-        """Test that missing environment variables raise an error."""
-        with pytest.raises(ValueError) as excinfo:
-            MultiModelCrew()
-        assert 'Missing required environment variables' in str(excinfo.value)
+# --- Test Config Module ---
 
-    @patch('src.main.load_dotenv')
-    @patch('src.main.Path')
-    def test_env_file_loading(self, mock_path, mock_load_dotenv):
-        """Test that .env file is loaded if it exists."""
-        # Setup mock
-        mock_path.return_value.exists.return_value = True
-        
-        # Initialize
-        MultiModelCrew()
-        
-        # Assert load_dotenv was called
-        mock_load_dotenv.assert_called_once()
+def test_config_loading(mock_environment_vars):
+    """Test that the configuration loads correctly."""
+    from src.config import app_config
+    assert app_config['OPENAI_API_KEY'] == 'test_openai_key'
+    assert app_config['GOOGLE_API_KEY'] == 'test_google_key'
+    assert app_config['SERPER_API_KEY'] == 'test_serper_key'
 
-    def test_main_function(self):
-        """Test the main function execution."""
-        with patch('src.main.MultiModelCrew') as mock_crew_class:
-            # Setup mock
-            mock_instance = MagicMock()
-            mock_instance.run.return_value = {
-                'topic': 'test topic',
-                'result': 'test result',
-                'markdown': 'test markdown'
-            }
-            mock_crew_class.return_value = mock_instance
-            
-            # Import and run main
-            from src.main import main
-            
-            # Test successful execution
-            with patch('builtins.print') as mock_print:
-                main()
-                mock_print.assert_called()
-            
-            # Test exception handling
-            mock_instance.run.side_effect = Exception('Test error')
-            with patch('src.main.logger') as mock_logger:
-                with pytest.raises(Exception):
-                    main()
-                mock_logger.error.assert_called_once()
+@patch.dict('os.environ', {}, clear=True)
+def test_missing_env_vars():
+    """Test that missing environment variables raise a ValueError."""
+    with pytest.raises(ValueError) as excinfo:
+        # We need to re-import the module to trigger the config load again
+        import importlib
+        from src import config
+        importlib.reload(config)
+    assert 'Missing required environment variables' in str(excinfo.value)
+
+# --- Test Crew Module ---
+
+def test_create_multi_model_crew(mock_llms, mock_tools):
+    """Test the creation of the multi-model crew."""
+    from src.crew import create_multi_model_crew
+    agents, tasks = create_multi_model_crew()
+    
+    assert len(agents) == 2
+    assert len(tasks) == 2
+    assert agents[0].role == 'Senior Researcher'
+    assert agents[1].role == 'Writer'
+
+def test_run_crew(mock_crew):
+    """Test the run_crew function."""
+    from src.crew import run_crew
+    topic = "test topic"
+    result = run_crew(topic)
+    
+    assert result['topic'] == topic
+    assert result['result'] == 'Test result'
+    mock_crew.kickoff.assert_called_once_with(inputs={'topic': topic})
+
+# --- Test Main Module ---
+
+@patch('src.main.run_crew')
+def test_main_success(mock_run_crew):
+    """Test the main function's successful execution path."""
+    from src.main import main
+    mock_run_crew.return_value = {'result': 'Final article'}
+    
+    with patch('builtins.print') as mock_print:
+        main()
+        # Verify that run_crew was called
+        mock_run_crew.assert_called_once()
+        # Verify that the result was printed
+        mock_print.assert_any_call("\n" + "="*80)
+        mock_print.assert_any_call('Final article')
+
+@patch('src.main.run_crew', side_effect=Exception("Test error"))
+def test_main_exception(mock_run_crew):
+    """Test the main function's exception handling."""
+    from src.main import main
+    with pytest.raises(Exception) as excinfo:
+        main()
+    assert "Test error" in str(excinfo.value)

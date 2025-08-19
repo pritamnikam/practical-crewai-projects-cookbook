@@ -20,7 +20,7 @@ def mock_environment_vars():
 @pytest.fixture
 def mock_crew():
     """Create a mock Crew instance for testing."""
-    with patch('src.main.Crew') as mock_crew_class:
+    with patch('src.crew.Crew') as mock_crew_class:
         mock_instance = MagicMock()
         mock_instance.kickoff.return_value = MagicMock(raw='Test result')
         mock_crew_class.return_value = mock_instance
@@ -29,8 +29,8 @@ def mock_crew():
 @pytest.fixture
 def mock_llms():
     """Mock the LLM classes."""
-    with patch('src.main.ChatGoogleGenerativeAI') as mock_gemini, \
-         patch('src.main.ChatOpenAI') as mock_openai:
+    with patch('src.crew.ChatGoogleGenerativeAI') as mock_gemini, \
+         patch('src.crew.ChatOpenAI') as mock_openai:
         yield {
             'gemini': mock_gemini.return_value,
             'openai': mock_openai.return_value
@@ -39,8 +39,8 @@ def mock_llms():
 @pytest.fixture
 def mock_tools():
     """Mock the tool classes."""
-    with patch('src.main.SerperDevTool') as mock_search, \
-         patch('src.main.ScrapeWebsiteTool') as mock_scrape:
+    with patch('src.crew.SerperDevTool') as mock_search, \
+         patch('src.crew.ScrapeWebsiteTool') as mock_scrape:
         yield {
             'search': mock_search.return_value,
             'scrape': mock_scrape.return_value

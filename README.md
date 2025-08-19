@@ -40,6 +40,10 @@ Here is a summary of the examples included in this repository:
     -   **Description**: A project showcasing advanced crew execution methods, including asynchronous and batch processing.
     -   **Concepts**: Asynchronous execution, batch processing, `kickoff_async`, `kickoff_for_each`.
 
+9.  **[09-agent-conditional-tasks-crewai](./09-agent-conditional-tasks-crewai/)**
+    -   **Description**: An example of how to implement conditional task execution, allowing a crew to dynamically alter its workflow.
+    -   **Concepts**: Conditional tasks, dynamic workflows, `ConditionalTask`.
+
 ## Getting Started
 
 Each project directory contains its own `README.md` with specific instructions for setup and execution. In general, all projects follow a similar structure:

@@ -7,7 +7,7 @@ the command line.
 
 import argparse
 import logging
-from .agent import run_agent
+from .agent import create_agent_executor, run_agent
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,10 @@ def main():
     args = parser.parse_args()
 
     try:
+        logger.info("Creating ReAct agent executor...")
+        agent_executor = create_agent_executor()
         logger.info(f"Running ReAct agent for question: {args.question}")
-        response = run_agent(args.question)
+        response = run_agent(agent_executor, args.question)
         
         print("\n" + "="*80)
         print("Agent Response:")

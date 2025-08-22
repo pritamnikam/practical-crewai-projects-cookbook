@@ -5,47 +5,37 @@ This module defines the agents, tasks, and crew responsible for researching and
 writing an article using different LLM providers (Gemini and GPT-4o).
 """
 
-import os
 import logging
-from typing import Dict, Any
+from typing import Dict, List, Any
 
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import ScrapeWebsiteTool, SerperDevTool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-from IPython.display import Markdown
 
-from . import config  # Ensures config is loaded
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
-def create_multi_model_crew():
-    """Creates and configures the multi-model crew.
-    
-    Returns:
-        A tuple containing the configured agents and tasks.
-    """
-    # Initialize Tools
-    search_tool = SerperDevTool()
-    scrape_tool = ScrapeWebsiteTool()
-    logger.info("Initialized tools: search_tool, scrape_tool")
-
-    # Initialize Models
+def _initialize_llms() -> Dict[str, Any]:
+    """Initializes and returns the language models."""
     gemini = ChatGoogleGenerativeAI(
         model="gemini-1.5-flash",
         verbose=True,
         temperature=0.5,
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        google_api_key=settings.google_api_key,
     )
     gpt = ChatOpenAI(
         model="gpt-4o-2024-08-06",
         verbose=True,
         temperature=0.5,
-        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        openai_api_key=settings.openai_api_key,
     )
     logger.info("Initialized models: gemini-1.5-flash, gpt-4o-2024-08-06")
+    return {"gemini": gemini, "gpt": gpt}
 
-    # Define Agents
+def _define_agents(llms: Dict[str, Any], search_tool: SerperDevTool) -> List[Agent]:
+    """Defines the agents for the multi-model crew."""
     article_researcher = Agent(
         role="Senior Researcher",
         goal='Uncover groundbreaking technologies in {topic}',
@@ -56,7 +46,7 @@ def create_multi_model_crew():
             "eager to explore and share knowledge that could change the world."
         ),
         tools=[search_tool],
-        llm=gemini,
+        llm=llms['gemini'],
         allow_delegation=True
     )
 
@@ -71,12 +61,16 @@ def create_multi_model_crew():
             "discoveries to light in an accessible manner."
         ),
         tools=[search_tool],
-        llm=gpt,
+        llm=llms['gpt'],
         allow_delegation=False
     )
     logger.info("Created agents: article_researcher, article_writer")
+    return [article_researcher, article_writer]
 
-    # Define Tasks
+def _define_tasks(agents: List[Agent], search_tool: SerperDevTool) -> List[Task]:
+    """Defines the tasks for the multi-model crew."""
+    article_researcher, article_writer = agents
+
     research_task = Task(
         description=(
             "Conduct a thorough analysis on the given {topic}. "
@@ -97,10 +91,9 @@ def create_multi_model_crew():
         agent=article_writer,
     )
     logger.info("Created tasks: research_task, writing_task")
+    return [research_task, writing_task]
 
-    return [article_researcher, article_writer], [research_task, writing_task]
-
-def run_crew(topic: str) -> Dict[str, Any]:
+def run_crew(topic: str) -> str:
     """
     Initializes and runs the crew for the given topic.
 
@@ -108,9 +101,12 @@ def run_crew(topic: str) -> Dict[str, Any]:
         topic: The topic to research and write about.
 
     Returns:
-        A dictionary containing the results and metadata.
+        The result of the crew's execution.
     """
-    agents, tasks = create_multi_model_crew()
+    search_tool = SerperDevTool(api_key=settings.serper_api_key)
+    llms = _initialize_llms()
+    agents = _define_agents(llms, search_tool)
+    tasks = _define_tasks(agents, search_tool)
 
     crew = Crew(
         agents=agents,
@@ -122,12 +118,6 @@ def run_crew(topic: str) -> Dict[str, Any]:
     logger.info(f"Starting crew with topic: {topic}")
     inputs = {'topic': topic}
     result = crew.kickoff(inputs=inputs)
-
-    output = {
-        'topic': topic,
-        'result': result,
-        'markdown': Markdown(result)
-    }
     
     logger.info("Crew execution completed successfully")
-    return output
+    return result

@@ -16,27 +16,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
-env_path = Path(__file__).resolve().parent.parent / ".env"
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
-    logger.info(f"Loaded environment variables from {env_path}")
-
-def get_config():
-    """Validates and returns configuration from environment variables."""
-    required_vars = ["OPENAI_API_KEY", "GOOGLE_API_KEY", "SERPER_API_KEY"]
-    config = {var: os.getenv(var) for var in required_vars}
-    
-    missing_vars = [var for var, value in config.items() if value is None]
-    if missing_vars:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+class Settings:
+    """Configuration settings for the application."""
+    def __init__(self):
+        env_path = Path(__file__).resolve().parent.parent / ".env"
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path)
+            logger.info(f"Loaded environment variables from {env_path}")
         
-    # Optional LangChain tracing
-    if os.getenv("LANGCHAIN_API_KEY"):
-        os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        logger.info("LangChain tracing enabled.")
+        self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
+        self.google_api_key = self._get_required_env("GOOGLE_API_KEY")
+        self.serper_api_key = self._get_required_env("SERPER_API_KEY")
         
-    return config
+        # Optional LangChain tracing
+        if os.getenv("LANGCHAIN_API_KEY"):
+            os.environ["LANGCHAIN_TRACING_V2"] = "true"
+            logger.info("LangChain tracing enabled.")
 
-# Load configuration on import
-app_config = get_config()
+    def _get_required_env(self, var_name: str) -> str:
+        """Get a required environment variable."""
+        value = os.getenv(var_name)
+        if value is None:
+            raise ValueError(f"Missing required environment variable: {var_name}")
+        return value
+
+# Create a single instance of the settings
+settings = Settings()

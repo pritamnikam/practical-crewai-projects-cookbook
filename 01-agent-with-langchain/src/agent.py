@@ -8,26 +8,25 @@ from langchain import hub
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_openai import OpenAI
-from . import config  # Ensures config is loaded
+from .config import settings
 
-def run_agent(question: str) -> dict:
-    """Run the ReAct agent on a given question and return the response."""
+def create_agent_executor() -> AgentExecutor:
+    """Creates and returns the ReAct agent executor."""
     # Get the prompt from LangChain Hub
     prompt = hub.pull("hwchase17/react")
     
     # Initialize tools
-    tools = [TavilySearchResults(max_results=1)]
+    tools = [TavilySearchResults(max_results=1, tavily_api_key=settings.tavily_api_key)]
     
     # Initialize the language model
-    llm = OpenAI()
+    llm = OpenAI(openai_api_key=settings.openai_api_key)
     
     # Create the agent
     agent = create_react_agent(llm, tools, prompt)
     
     # Create the agent executor
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    
-    # Invoke the agent
-    response = agent_executor.invoke({"input": question})
-    
-    return response
+    return AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+def run_agent(agent_executor: AgentExecutor, question: str) -> dict:
+    """Run the ReAct agent on a given question and return the response."""
+    return agent_executor.invoke({"input": question})

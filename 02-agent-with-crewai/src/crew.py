@@ -4,16 +4,15 @@ CrewAI Event Planning Crew Module
 This module defines the agents, tasks, and crew for the event planning workflow.
 """
 
-from typing import Dict
+from typing import Dict, List
 from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
-from . import config  # Ensures config is loaded
+from .config import settings
 
-def run_event_planning_crew(inputs: Dict[str, str]) -> str:
-    """Run the multi-agent CrewAI workflow for event planning."""
-    search_tool = SerperDevTool()
-
-    # Define Agents
+def define_agents() -> List[Agent]:
+    """Defines the agents for the event planning crew."""
+    search_tool = SerperDevTool(api_key=settings.serper_api_key)
+    
     venue_finder = Agent(
         role="Conference Venue Finder",
         goal="Find the best venue for the upcoming conference",
@@ -37,8 +36,13 @@ def run_event_planning_crew(inputs: Dict[str, str]) -> str:
         tools=[search_tool],
         verbose=True
     )
+    return [venue_finder, venue_quality_assurance_agent]
 
-    # Define Tasks
+def define_tasks(agents: List[Agent]) -> List[Task]:
+    """Defines the tasks for the event planning crew."""
+    venue_finder, venue_quality_assurance_agent = agents
+    search_tool = SerperDevTool(api_key=settings.serper_api_key)
+
     find_venue_task = Task(
         description=(
             "Conduct a thorough search to find the best venue for the upcoming conference in Las Vegas, USA. "
@@ -64,14 +68,21 @@ def run_event_planning_crew(inputs: Dict[str, str]) -> str:
         tools=[search_tool],
         agent=venue_quality_assurance_agent,
     )
+    return [find_venue_task, quality_assurance_review_task]
 
-    # Assemble the Crew
+def create_and_run_crew(agents: List[Agent], tasks: List[Task], inputs: Dict[str, str]) -> str:
+    """Creates and runs the event planning crew."""
     event_planning_crew = Crew(
-        agents=[venue_finder, venue_quality_assurance_agent],
-        tasks=[find_venue_task, quality_assurance_review_task],
+        agents=agents,
+        tasks=tasks,
         verbose=True
     )
-
-    # Run the crew
     result = event_planning_crew.kickoff(inputs=inputs)
+    return result
+
+def run_event_planning_crew(inputs: Dict[str, str]) -> str:
+    """Run the multi-agent CrewAI workflow for event planning."""
+    agents = define_agents()
+    tasks = define_tasks(agents)
+    result = create_and_run_crew(agents, tasks, inputs)
     return result
